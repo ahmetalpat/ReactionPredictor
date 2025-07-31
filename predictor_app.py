@@ -10,6 +10,7 @@ def load_model():
     try:
         tokenizer = AutoTokenizer.from_pretrained(model_name)
         model = AutoModelForSeq2SeqLM.from_pretrained(model_name)
+        st.session_state.model_loaded = True
         return model, tokenizer
     except Exception as e:
         st.error(f"Fatal Error: Could not load the prediction model. {e}")
@@ -30,33 +31,103 @@ def predict_product(reactants, reagents, model, tokenizer, num_predictions):
 def display_molecule(smiles_string, legend):
     mol = Chem.MolFromSmiles(smiles_string)
     if mol:
-        st.image(Draw.MolToImage(mol, size=(350, 350), legend=legend), use_column_width='always')
+        # The use_column_width='always' is deprecated, so we remove it.
+        st.image(Draw.MolToImage(mol, size=(350, 350), legend=legend))
     else:
         st.warning(f"RDKit could not parse the predicted SMILES: `{smiles_string}`")
 
 def show_predictor_page():
+    # --- SIDEBAR ---
     st.sidebar.success(f"Logged in as: **{st.session_state.username}**")
     if st.sidebar.button("Logout"):
-        # Clear session to log out
         for key in list(st.session_state.keys()):
             del st.session_state[key]
         st.rerun()
 
-    st.title("🧪 Chemical Reaction Predictor")
     st.sidebar.markdown("---")
-    num_predictions = st.sidebar.slider("Number of Predictions", 1, 5, 1, help="How many potential products should the model suggest?")
+    st.sidebar.header("Controls and Information")
+    
+    # --- Example Reactions ---
+    example_reactions = {
+        "Esterification": ("CCO.O=C(O)C", ""),
+        "Amide Formation": ("CCN.O=C(Cl)C", ""),
+        "Suzuki Coupling": ("[B-](C1=CC=CC=C1)(F)(F)F.[K+].CC1=CC=C(Br)C=C1", "c1ccc(B(O)O)cc1"),
+        "Clear Inputs": ("", "")
+    }
 
+    def load_example():
+        example_key = st.session_state.example_select
+        if example_key in example_reactions:
+            reactants, reagents = example_reactions[example_key]
+            st.session_state.reactants_smiles = reactants
+            st.session_state.reagents_smiles = reagents
+
+    st.sidebar.selectbox(
+        "Load an Example Reaction",
+        options=list(example_reactions.keys()),
+        key="example_select",
+        on_change=load_example,
+        index=0 # Default to the first option
+    )
+
+    # --- Prediction Parameters ---
+    st.sidebar.markdown("---")
+    st.sidebar.subheader("Prediction Parameters")
+    num_predictions = st.sidebar.slider("Number of Predictions to Generate", 1, 5, 1)
+
+    # --- MAIN PAGE ---
+    st.title("🧪 Chemical Reaction Predictor")
+    st.markdown("A tool to predict chemical reactions using a state-of-the-art Transformer model.")
+    
     model, tokenizer = load_model()
-    if not model or not tokenizer:
-        return
+    if 'model_loaded' not in st.session_state:
+        st.warning("Model is loading... The app will be ready shortly.")
+        st.stop()
+    elif not model or not tokenizer:
+        st.error("Model failed to load. The application cannot continue.")
+        st.stop()
+    else:
+        st.success("Model loaded successfully!")
+    
+    # Initialize session state keys if they don't exist
+    if "reactants_smiles" not in st.session_state:
+        st.session_state.reactants_smiles = "CCO.O=C(O)C"
+    if "reagents_smiles" not in st.session_state:
+        st.session_state.reagents_smiles = ""
 
-    st.header("1. Provide Reactants & Reagents")
-    col1, col2 = st.columns(2)
-    with col1:
-        st.session_state.reactants_smiles = st_ketcher(st.session_state.get("reactants_smiles", "CCO.O=C(O)C"), key="ketcher_reactants")
-    with col2:
-        st.session_state.reagents_smiles = st_ketcher(st.session_state.get("reagents_smiles", ""), key="ketcher_reagents")
+    # --- Input Tabs ---
+    st.header("1. Provide Reactants and Reagents")
+    input_tab1, input_tab2 = st.tabs(["✍️ Chemical Drawing Tool", "⌨️ SMILES Text Input"])
 
+    with input_tab1:
+        col1, col2 = st.columns(2)
+        with col1:
+            st.subheader("Reactants")
+            reactants_drawing = st_ketcher(st.session_state.reactants_smiles, key="ketcher_reactants")
+            if reactants_drawing != st.session_state.reactants_smiles:
+                st.session_state.reactants_smiles = reactants_drawing
+                st.rerun()
+        with col2:
+            st.subheader("Reagents (Optional)")
+            reagents_drawing = st_ketcher(st.session_state.reagents_smiles, key="ketcher_reagents")
+            if reagents_drawing != st.session_state.reagents_smiles:
+                st.session_state.reagents_smiles = reagents_drawing
+                st.rerun()
+
+    with input_tab2:
+        st.subheader("Enter SMILES Strings")
+        reactants_text = st.text_input("Reactants SMILES", st.session_state.reactants_smiles)
+        if reactants_text != st.session_state.reactants_smiles:
+            st.session_state.reactants_smiles = reactants_text
+            st.rerun()
+            
+        reagents_text = st.text_input("Reagents SMILES", st.session_state.reagents_smiles)
+        if reagents_text != st.session_state.reagents_smiles:
+            st.session_state.reagents_smiles = reagents_text
+            st.rerun()
+    
+    # --- Prediction ---
+    st.header("2. Generate Prediction")
     if st.button("Predict Product", type="primary", use_container_width=True):
         if not st.session_state.reactants_smiles:
             st.error("Reactants field cannot be empty.")
