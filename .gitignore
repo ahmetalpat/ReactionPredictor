@@ -1,7 +1,20 @@
-
+# Database file
 users.db
-pycache/
+users.db-journal
+
+# Python cache
+__pycache__/
 *.pyc
+*.pyo
+*.pyd
+
+# IDE folders
 .vscode/
 .idea/
-.env
+
+# Environment files
+.env*
+
+# Local deployment files (like the deploy key)
+deploy_key
+deploy_key.pub

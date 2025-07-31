@@ -4,3 +4,4 @@ torch
 rdkit
 streamlit-ketcher
 sentencepiece
+passlib[bcrypt]
