@@ -1,7 +1,7 @@
 # Name of the workflow
-name: Deploy to DigitalOcean Droplet
+name: Deploy to DigitalOcean via Password SSH
 
-# This workflow runs on a 'push' event to the 'main' branch
+# Run this workflow on a push to the 'main' branch
 on:
   push:
     branches:
@@ -9,43 +9,32 @@ on:
 
 jobs:
   deploy:
-    # Use the latest version of Ubuntu for the runner
+    # Use the latest Ubuntu runner
     runs-on: ubuntu-latest
 
     steps:
-      # Step 1: Check out the repository code
-      - name: Checkout code
-        uses: actions/checkout@v4
-
-      # Step 2: Install the SSH private key from GitHub Secrets
-      - name: Install SSH Key
-        uses: shimataro/ssh-key-action@v2
-        with:
-          key: ${{ secrets.SSH_PRIVATE_KEY }}
-          known_hosts: 'just-a-placeholder'
-      
-      # Step 3: Add the droplet's host key to the runner's known_hosts
-      - name: Add Droplet to Known Hosts
-        run: ssh-keyscan -H ${{ secrets.DROPLET_HOST }} >> ~/.ssh/known_hosts
-
-      # Step 4: Connect to the droplet and run the deployment commands
+      # Step 1: Use a pre-built action for SSH deployment
       - name: Deploy to Droplet
-        run: |
-          ssh ${{ secrets.DROPLET_USER }}@${{ secrets.DROPLET_HOST }} << 'EOF'
-            # Navigate to the project directory on the droplet
-            # !!! REPLACE THIS WITH YOUR REPOSITORY NAME !!!
-            cd ~/YOUR_REPO_NAME 
+        uses: appleboy/ssh-action@master
+        with:
+          # Get the droplet credentials from GitHub Secrets
+          host: ${{ secrets.DROPLET_HOST }}
+          username: ${{ secrets.DROPLET_USER }}
+          password: ${{ secrets.DROPLET_PASSWORD }}
+          # The script block contains the commands to run on your server
+          script: |
+            # Navigate into the project directory
+            cd ~/ReactionPredictor
             
-            # Pull the latest changes from the main branch
+            # Pull the latest code from your GitHub repository
             git pull origin main
             
-            echo "Latest code pulled. Building and restarting services via Docker Compose..."
+            echo "✅ Latest code pulled. Building and restarting services..."
             
-            # Use Docker Compose to rebuild the app image and restart services in detached mode
+            # Use Docker Compose to build the new image and restart the services
             docker-compose up --build -d
             
-            # Prune old, unused Docker images to save space
+            # Clean up old, unused Docker images to save disk space
             docker image prune -af
             
-            echo "Deployment successful!"
-          EOF
+            echo "🚀 Deployment successful!"
