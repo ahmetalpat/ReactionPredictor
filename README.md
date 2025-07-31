@@ -12,6 +12,12 @@ pinned: false
 
 This application predicts the products of chemical reactions using a state-of-the-art T5-based model.
 
+# Reaction Predictor
+
+A Streamlit app to predict chemical reactions.
+
+**This is a test to trigger the deployment workflow.**
+
 ## How to Use the App
 
 1.  **Input Molecules**: You have two options:
