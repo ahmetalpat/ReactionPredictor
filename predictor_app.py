@@ -55,7 +55,7 @@ def show_predictor_page():
     with col1:
         st.session_state.reactants_smiles = st_ketcher(st.session_state.get("reactants_smiles", "CCO.O=C(O)C"), key="ketcher_reactants")
     with col2:
-        st.session_state.reagents_smiles = st_ketcher(st.session_state.get("reagents_smiles", ""), key="ketcher_reagents", title="Reagents (Optional)")
+        st.session_state.reagents_smiles = st_ketcher(st.session_state.get("reagents_smiles", ""), key="ketcher_reagents")
 
     if st.button("Predict Product", type="primary", use_container_width=True):
         if not st.session_state.reactants_smiles:
