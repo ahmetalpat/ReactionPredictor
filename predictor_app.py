@@ -30,7 +30,6 @@ def predict_product(reactants, reagents, model, tokenizer, num_predictions):
 
 def display_molecule(smiles_string, legend):
     # The model can predict multiple products separated by a ".".
-    # We split the string into individual SMILES parts.
     smiles_parts = smiles_string.split('.')
     
     # Keep track if we successfully display any molecule.
@@ -38,9 +37,15 @@ def display_molecule(smiles_string, legend):
 
     # Process each potential molecule part.
     for i, part in enumerate(smiles_parts):
-        # .strip() removes any accidental whitespace around the SMILES.
         clean_part = part.strip()
         if not clean_part:
+            continue
+
+        # --- NEW LOGIC: Only attempt to draw fragments that are likely organic products ---
+        # A simple heuristic is to check for the presence of a Carbon atom ('c' or 'C').
+        if 'c' not in clean_part.lower():
+            # You can optionally inform the user about filtered-out parts.
+            # st.info(f"Ignoring simple ion/fragment: `{clean_part}`")
             continue
 
         mol = Chem.MolFromSmiles(clean_part)
@@ -56,7 +61,7 @@ def display_molecule(smiles_string, legend):
     
     # If after checking all parts, nothing could be displayed, show a general error.
     if not displayed_something:
-        st.error("RDKit could not parse any of the predicted SMILES fragments.")
+        st.error("RDKit could not parse any of the predicted organic product SMILES.")
 
 def show_predictor_page():
     # --- SIDEBAR ---
