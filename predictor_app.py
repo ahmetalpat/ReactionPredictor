@@ -29,12 +29,34 @@ def predict_product(reactants, reagents, model, tokenizer, num_predictions):
     return [tokenizer.decode(output, skip_special_tokens=True) for output in outputs]
 
 def display_molecule(smiles_string, legend):
-    mol = Chem.MolFromSmiles(smiles_string)
-    if mol:
-        # The use_column_width='always' is deprecated, so we remove it.
-        st.image(Draw.MolToImage(mol, size=(350, 350), legend=legend))
-    else:
-        st.warning(f"RDKit could not parse the predicted SMILES: `{smiles_string}`")
+    # The model can predict multiple products separated by a ".".
+    # We split the string into individual SMILES parts.
+    smiles_parts = smiles_string.split('.')
+    
+    # Keep track if we successfully display any molecule.
+    displayed_something = False
+
+    # Process each potential molecule part.
+    for i, part in enumerate(smiles_parts):
+        # .strip() removes any accidental whitespace around the SMILES.
+        clean_part = part.strip()
+        if not clean_part:
+            continue
+
+        mol = Chem.MolFromSmiles(clean_part)
+        
+        # Check if RDKit was able to parse the SMILES part.
+        if mol:
+            # If successful, generate and display the image.
+            st.image(Draw.MolToImage(mol, size=(350, 350), legend=f"{legend}, Part {i+1}"))
+            displayed_something = True
+        else:
+            # If it fails, show a warning for just the bad part.
+            st.warning(f"RDKit could not parse the predicted SMILES fragment: `{clean_part}`")
+    
+    # If after checking all parts, nothing could be displayed, show a general error.
+    if not displayed_something:
+        st.error("RDKit could not parse any of the predicted SMILES fragments.")
 
 def show_predictor_page():
     # --- SIDEBAR ---
