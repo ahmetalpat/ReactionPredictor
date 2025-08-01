@@ -64,7 +64,7 @@ def display_molecule(smiles_string, legend):
         st.error("RDKit could not parse any of the predicted organic product SMILES.")
 
 def show_predictor_page():
-    # --- SIDEBAR ---
+    # --- SIDEBAR ---\
     st.sidebar.success(f"Logged in as: **{st.session_state.username}**")
     if st.sidebar.button("Logout"):
         for key in list(st.session_state.keys()):
@@ -74,11 +74,14 @@ def show_predictor_page():
     st.sidebar.markdown("---")
     st.sidebar.header("Controls and Information")
     
-    # --- Example Reactions ---
+    # --- Example Reactions ---\
     example_reactions = {
         "Esterification": ("CCO.O=C(O)C", ""),
         "Amide Formation": ("CCN.O=C(Cl)C", ""),
         "Suzuki Coupling": ("[B-](C1=CC=CC=C1)(F)(F)F.[K+].CC1=CC=C(Br)C=C1", "c1ccc(B(O)O)cc1"),
+        "Diels-Alder": ("C=CC=C.C=C", ""),
+        "Grignard": ("C=O.C[Mg]Br", ""),
+        "Jones Oxidation": ("c1ccccc1CC(O)C", "O=Cr(=O)(O)O"),
         "Clear Inputs": ("", "")
     }
 
@@ -94,27 +97,29 @@ def show_predictor_page():
         options=list(example_reactions.keys()),
         key="example_select",
         on_change=load_example,
-        index=0 # Default to the first option
+        index=0
     )
 
-    # --- Prediction Parameters ---
+    # --- Prediction Parameters ---\
     st.sidebar.markdown("---")
     st.sidebar.subheader("Prediction Parameters")
     num_predictions = st.sidebar.slider("Number of Predictions to Generate", 1, 5, 1)
 
-    # --- MAIN PAGE ---
+    # --- MAIN PAGE ---\
     st.title("🧪 Chemical Reaction Predictor")
     st.markdown("A tool to predict chemical reactions using a state-of-the-art Transformer model.")
     
-    model, tokenizer = load_model()
-    if 'model_loaded' not in st.session_state:
-        st.warning("Model is loading... The app will be ready shortly.")
-        st.stop()
-    elif not model or not tokenizer:
+    # --- NEW, IMPROVED LOADING LOGIC ---
+    # Use a spinner to show a loading message while the model is being loaded.
+    # The @st.cache_resource decorator ensures load_model() only runs once.
+    with st.spinner("Model is loading... This may take a moment on the first run."):
+        model, tokenizer = load_model()
+
+    if not model or not tokenizer:
         st.error("Model failed to load. The application cannot continue.")
         st.stop()
-    else:
-        st.success("Model loaded successfully!")
+    
+    st.success("Model loaded successfully!")
     
     # Initialize session state keys if they don't exist
     if "reactants_smiles" not in st.session_state:
@@ -122,7 +127,7 @@ def show_predictor_page():
     if "reagents_smiles" not in st.session_state:
         st.session_state.reagents_smiles = ""
 
-    # --- Input Tabs ---
+    # --- Input Tabs ---\
     st.header("1. Provide Reactants and Reagents")
     input_tab1, input_tab2 = st.tabs(["✍️ Chemical Drawing Tool", "⌨️ SMILES Text Input"])
 
@@ -153,7 +158,7 @@ def show_predictor_page():
             st.session_state.reagents_smiles = reagents_text
             st.rerun()
     
-    # --- Prediction ---
+    # --- Prediction ---\
     st.header("2. Generate Prediction")
     if st.button("Predict Product", type="primary", use_container_width=True):
         if not st.session_state.reactants_smiles:
@@ -164,8 +169,12 @@ def show_predictor_page():
                     st.session_state.reactants_smiles, st.session_state.reagents_smiles,
                     model, tokenizer, num_predictions
                 )
-                st.header("Predicted Products")
-                for i, p in enumerate(predictions):
-                    st.subheader(f"Prediction #{i + 1}")
-                    st.code(p, language="smiles")
-                    display_molecule(p, f"Product #{i+1}")
+                st.session_state.predictions = predictions # Save predictions to session state
+    
+    # --- Display Results ---
+    if 'predictions' in st.session_state:
+        st.header("Predicted Products")
+        for i, p in enumerate(st.session_state.predictions):
+            st.subheader(f"Prediction #{i + 1}")
+            st.code(p, language="smiles")
+            display_molecule(p, f"Product #{i+1}")
