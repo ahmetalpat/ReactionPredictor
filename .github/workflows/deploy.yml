@@ -1,27 +1,3 @@
-# Name of the workflow
-name: Deploy to DigitalOcean via Password SSH
-
-# Run this workflow on a push to the 'main' branch
-on:
-  push:
-    branches:
-      - main
-
-jobs:
-  deploy:
-    # Use the latest Ubuntu runner
-    runs-on: ubuntu-latest
-
-    steps:
-      # Step 1: Use a pre-built action for SSH deployment
-      - name: Deploy to Droplet
-        uses: appleboy/ssh-action@master
-        with:
-          # Get the droplet credentials from GitHub Secrets
-          host: ${{ secrets.DROPLET_HOST }}
-          username: ${{ secrets.DROPLET_USER }}
-          password: ${{ secrets.DROPLET_PASSWORD }}
-          # The script block contains the commands to run on your server
           script: |
             # Navigate into the project directory
             cd ~/ReactionPredictor
@@ -29,10 +5,16 @@ jobs:
             # Pull the latest code from your GitHub repository
             git pull origin main
             
-            echo "✅ Latest code pulled. Building and restarting services..."
+            echo "✅ Latest code pulled. Forcing a clean rebuild of services..."
             
-            # Use Docker Compose to build the new image and restart the services
-            docker-compose up --build -d
+            # Stop and remove the old running containers to ensure a clean start
+            docker-compose down
+            
+            # Rebuild the app image from scratch, ignoring any cache
+            docker-compose build --no-cache app
+            
+            # Start the new services in detached mode
+            docker-compose up -d
             
             # Clean up old, unused Docker images to save disk space
             docker image prune -af
