@@ -1,3 +1,28 @@
+# Name of the workflow
+name: Deploy to DigitalOcean via Password SSH
+
+# Run this workflow on a push to the 'main' branch
+# The indentation here is crucial
+on:
+  push:
+    branches:
+      - main
+
+jobs:
+  deploy:
+    # Use the latest Ubuntu runner
+    runs-on: ubuntu-latest
+
+    steps:
+      # Step 1: Use a pre-built action for SSH deployment
+      - name: Deploy to Droplet
+        uses: appleboy/ssh-action@master
+        with:
+          # Get the droplet credentials from GitHub Secrets
+          host: ${{ secrets.DROPLET_HOST }}
+          username: ${{ secrets.DROPLET_USER }}
+          password: ${{ secrets.DROPLET_PASSWORD }}
+          # The script block contains the commands to run on your server
           script: |
             # Navigate into the project directory
             cd ~/ReactionPredictor
