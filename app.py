@@ -6,11 +6,7 @@ import time
 # Check an environment variable to decide which app to run
 APP_MODE = os.environ.get("STREAMLIT_APP_MODE")
 
-if APP_MODE == "landing":
-    from landing_page import show_landing_page
-    show_landing_page()
-
-elif APP_MODE == "predictor":
+if APP_MODE == "predictor":
     # This must be the first Streamlit command
     st.set_page_config(page_title="Reaction Predictor", layout="centered")
     
@@ -27,17 +23,9 @@ elif APP_MODE == "predictor":
 
 else:
     # This is the "launcher" part that runs when the container starts
-    print("Launcher script started. Starting Streamlit services...")
+    print("Launcher script started. Starting main predictor service...")
     
     env_vars = os.environ.copy()
-
-    # Start the landing page app on port 8502
-    env_vars["STREAMLIT_APP_MODE"] = "landing"
-    subprocess.Popen([
-        "streamlit", "run", "app.py",
-        "--server.port=8502",
-        "--server.headless=true", # Important for running in a container
-    ], env=env_vars)
 
     # Start the main predictor app on port 8501
     env_vars["STREAMLIT_APP_MODE"] = "predictor"
@@ -45,8 +33,7 @@ else:
         "streamlit", "run", "app.py",
         "--server.port=8501",
         "--server.headless=true", # Important for running in a container
-        # This allows Nginx to correctly proxy to the /app path
-        "--server.baseUrlPath=app",
+        "--server.baseUrlPath=app", # Allows Nginx to correctly proxy
     ], env=env_vars)
 
     # Keep the main script alive so the container doesn't exit
