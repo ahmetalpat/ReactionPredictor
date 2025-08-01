@@ -132,19 +132,19 @@ def show_predictor_page():
     input_tab1, input_tab2 = st.tabs(["✍️ Chemical Drawing Tool", "⌨️ SMILES Text Input"])
 
     with input_tab1:
-        col1, col2 = st.columns(2)
-        with col1:
-            st.subheader("Reactants")
-            reactants_drawing = st_ketcher(st.session_state.reactants_smiles, key="ketcher_reactants")
-            if reactants_drawing != st.session_state.reactants_smiles:
-                st.session_state.reactants_smiles = reactants_drawing
-                st.rerun()
-        with col2:
-            st.subheader("Reagents (Optional)")
-            reagents_drawing = st_ketcher(st.session_state.reagents_smiles, key="ketcher_reagents")
-            if reagents_drawing != st.session_state.reagents_smiles:
-                st.session_state.reagents_smiles = reagents_drawing
-                st.rerun()
+        # The column layout has been removed to stack the editors vertically.
+        
+        st.subheader("Reactants")
+        reactants_drawing = st_ketcher(st.session_state.reactants_smiles, key="ketcher_reactants")
+        if reactants_drawing != st.session_state.reactants_smiles:
+            st.session_state.reactants_smiles = reactants_drawing
+            st.rerun()
+
+        st.subheader("Reagents (Optional)")
+        reagents_drawing = st_ketcher(st.session_state.reagents_smiles, key="ketcher_reagents")
+        if reagents_drawing != st.session_state.reagents_smiles:
+            st.session_state.reagents_smiles = reagents_drawing
+            st.rerun()
 
     with input_tab2:
         st.subheader("Enter SMILES Strings")
